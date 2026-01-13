@@ -1,13 +1,10 @@
 from typing import List
 
 from fastapi import APIRouter, Depends
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
 from app.crud.order import order_crud
 from app.core.database import get_db
-from app.models.order import Order
 from app.schemas.order import OrderRead, OrderCreate
 
 router = APIRouter(prefix="/orders", tags=["orders"])
