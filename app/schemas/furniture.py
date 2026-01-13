@@ -1,10 +1,12 @@
 from pydantic import BaseModel
 
+from app.schemas.enums import FurnitureCategory
+
 
 class FurnitureCreate(BaseModel):
-    title: str
+    name: str
     price: float
-    category_id: int
+    category: FurnitureCategory
 
 class FurnitureRead(FurnitureCreate):
     id: int

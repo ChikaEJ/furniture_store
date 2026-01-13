@@ -1,26 +1,22 @@
-from app.core.database import Base
-
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from typing import List
+from sqlalchemy import Enum as SQLEnam
 from sqlalchemy import String, Float
-from enum import Enum
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.models.order_items import OrderItem
-
-
-class FurnitureCategory(str, Enum):
-    TABLE = "table"
-    CHAIR = "chair"
-    SOFA = "sofa"
+from app.core.database import Base
+from app.schemas.enums import FurnitureCategory
 
 
 class Furniture(Base):
     __tablename__ = "furnitures"
 
-    id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     price: Mapped[float] = mapped_column(Float, nullable=False)
-    category: Mapped[FurnitureCategory] = mapped_column(nullable=False)
+    category: Mapped[FurnitureCategory] = mapped_column(SQLEnam(FurnitureCategory), nullable=False)
 
-    order_items: Mapped[list["OrderItem"]] = relationship(
+    order_items: Mapped[List["OrderItem"]] = relationship(
+        "OrderItem",
         back_populates="furniture"
     )
+
+from app.models.order_item import OrderItem

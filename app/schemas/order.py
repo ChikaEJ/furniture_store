@@ -1,11 +1,22 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel
+from typing import List
 
-class OrderCreate(BaseModel):
-    client_email: EmailStr
-    total_price: float
+from app.schemas.order_item import OrderItemCreate, OrderItemRead
 
-class OrderRead(OrderCreate):
+
+class OrderBase(BaseModel):
+    client_email: str
+
+
+class OrderCreate(OrderBase):
+    items: List[OrderItemCreate]
+
+
+class OrderRead(OrderBase):
+
     id: int
+    total_price: float
+    items: List[OrderItemRead]
 
     class Config:
         from_attributes = True

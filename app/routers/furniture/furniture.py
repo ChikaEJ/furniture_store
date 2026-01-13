@@ -1,6 +1,6 @@
 from typing import List
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
@@ -17,4 +17,6 @@ async def get_furniture(db: AsyncSession = Depends(get_db)) -> List[FurnitureRea
 @router.get("/{id}", response_model=FurnitureRead)
 async def get_furniture_by_id(id: int, db: AsyncSession = Depends(get_db)) -> FurnitureRead:
     furniture = await furniture_crud.get(db, id)
+    if not furniture:
+        raise HTTPException(status_code=404, detail="Furniture not found")
     return FurnitureRead.model_validate(furniture)

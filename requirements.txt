@@ -8,3 +8,4 @@ pydantic-settings
 python-dotenv
 pydantic~=2.12.5
 httpx
+pydantic[email]
