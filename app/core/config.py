@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     POSTGRES_PORT: int
 
     class Config:
-        env_file = ".env"
+        env_file = ".env_example"
 
 
 settings = Settings()

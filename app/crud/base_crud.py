@@ -1,9 +1,8 @@
 from typing import Type, Dict, Any, TypeVar, Generic
 
 from pydantic import BaseModel
-from sqlalchemy import select, delete
+from sqlalchemy import select, delete, update
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm.sync import update
 
 from app.core.database import Base
 from app.core.exeptions import UserAlreadyExists

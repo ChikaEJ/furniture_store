@@ -1,6 +1,6 @@
 
 from fastapi import HTTPException
-from sqlalchemy import select, Sequence
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -15,13 +15,16 @@ class OrderCRUD(BaseCRUD):
     async def get_orders_by_email(
             self, email: str, db: AsyncSession
     ) -> list[OrderRead]:
+
         result = await db.execute(
             select(Order)
             .where(Order.client_email == email)
             .options(
-                selectinload(
-                    Order.items
-                ).selectinload(Furniture)).order_by(Order.id))
+                selectinload(Order.items)
+                .selectinload(OrderItem.furniture)
+            )
+            .order_by(Order.id)
+        )
 
         orders = result.scalars().all()
 
@@ -30,53 +33,69 @@ class OrderCRUD(BaseCRUD):
                 id=order.id,
                 client_email=order.client_email,
                 total_price=order.total_price,
-                items=[item.furniture_id for item in order.items]
+                items=order.items
             )
             for order in orders
         ]
 
-    async def create_order(self, data: OrderCreate, db: AsyncSession) -> Order:
-        furniture_ids = {item.furniture_id for item in data.items}
+    async def create_order(
+            self,
+            data: OrderCreate,
+            db: AsyncSession,
+    ) -> Order:
+
+        furniture_ids = [item.furniture_id for item in data.items]
 
         result = await db.execute(
-            select(Furniture).where(Furniture.id.in_(furniture_ids))
+            select(Furniture)
+            .where(Furniture.id.in_(furniture_ids))
         )
-        furnitures = {f.id: f for f in result.scalars().all()}
+        furnitures = result.scalars().all()
 
-        missing = furniture_ids - set(furnitures.keys())
-        if missing:
+        if len(furnitures) != len(furniture_ids):
             raise HTTPException(
-                status_code=404,
-                detail=f"Furniture not found: {sorted(missing)}",
+                status_code=400,
+                detail="Some furniture items not found"
             )
 
-        order_items: list[OrderItem] = []
-        total_price = 0.0
-
-        for item in data.items:
-            furniture = furnitures[item.furniture_id]
-            unit_price = float(furniture.price)
-            line_total = unit_price * item.quantity
-            total_price += line_total
-
-            order_items.append(
-                OrderItem(
-                    furniture_id=item.furniture_id,
-                    quantity=item.quantity,
-                    price=unit_price,
-                )
-            )
+        furniture_map = {f.id: f for f in furnitures}
 
         order = Order(
             client_email=data.client_email,
-            total_price=total_price,
-            items=order_items,
+            total_price=0,
         )
-
         db.add(order)
+        await db.flush()
+
+        total_price = 0
+        order_items: list[OrderItem] = []
+
+        for item in data.items:
+            furniture = furniture_map[item.furniture_id]
+            item_price = furniture.price * item.quantity
+            total_price += item_price
+
+            order_item = OrderItem(
+                order_id=order.id,
+                furniture_id=furniture.id,
+                quantity=item.quantity,
+                price=furniture.price,
+            )
+            order_items.append(order_item)
+
+        db.add_all(order_items)
+
+        order.total_price = total_price
+
         await db.commit()
-        await db.refresh(order)
 
-        return order
-
+        result = await db.execute(
+            select(Order)
+            .where(Order.id == order.id)
+            .options(
+                selectinload(Order.items)
+                .selectinload(OrderItem.furniture)
+            )
+        )
+        return result.scalar_one()
 order_crud = OrderCRUD(Order)
